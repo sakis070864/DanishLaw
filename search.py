@@ -4,6 +4,7 @@ import openai
 import Mekanism  # Ensure this module is correctly imported
 import re  # Import re module for the findtxt function
 import logging
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -180,7 +181,8 @@ if 'wrong_key' not in st.session_state:
     st.session_state['wrong_key'] = False
 
 # Load the logo image
-logo_path = "C:\\Users\\sakis\\Downloads\\Screenshot_2024-06-04_232939-removebg-preview.png"
+#logo_path = "C:\\Users\\sakis\\Downloads\\Screenshot_2024-06-04_232939-removebg-preview.png"
+logo_path = os.path.join(os.path.dirname(__file__), 'images', 'Screenshot_2024-06-04_232939-removebg-preview.png')
 logo = Image.open(logo_path)
 
 # Display the logo and text in the main section with adjusted spacing
