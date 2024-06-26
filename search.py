@@ -5,7 +5,7 @@ import Mekanism  # Ensure this module is correctly imported
 import re  # Import re module for the findtxt function
 import logging
 import os
-# Attempt 1
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
@@ -15,7 +15,7 @@ def findtxt(answer):
     
     # Check if answer has text
     if answer:
-        # Search for the keywords "**SUMMARY**," "**Summary**," "**summary**," or "**Key Points:**"
+        # Search for the keywords "**SUMMARY**," "**Summary**," or "**summary**"
         summary_match = re.search(r'\*\*SUMMARY\*\*|\*\*Summary\*\*|\*\*summary\*\*', answer)
         if summary_match:
             # Find the position of the keyword
@@ -23,12 +23,6 @@ def findtxt(answer):
             # Extract the text after the keyword
             after_summary_text = answer[start_pos:].strip()
             
-            # Look for "Key Points" after the summary keyword
-            key_points_match = re.search(r'\*\*Key Points:?\*\*', after_summary_text)
-            if key_points_match:
-                start_pos = key_points_match.end()
-                after_summary_text = after_summary_text[start_pos:].strip()
-
             # Extract the lines under the keyword
             summary_lines = []
             for line in after_summary_text.split('\n'):
@@ -227,23 +221,19 @@ with st.sidebar:
 
 # Function to get response from OpenAI
 def get_response(prompt):
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=2000,
-            temperature=0.1,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0
-        )
-        return response.choices[0].message['content'].strip()
-    except Exception as e:
-        logging.error(f"Error in get_response: {e}")
-        return "An error occurred while trying to get a response."
+    response = openai.ChatCompletion.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law. rrr."},
+            {"role": "user", "content": prompt}
+        ],
+        max_tokens=2000,
+        temperature=0.1,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0
+    )
+    return response.choices[0].message['content'].strip()
 
 # Function to handle summary link click
 def handle_summary_click(point):
