@@ -2,10 +2,10 @@ import streamlit as st
 from PIL import Image
 import openai
 import Mekanism  # Ensure this module is correctly imported
-import re
+import re  # Import re module for the findtxt function
 import logging
 import os
-
+# Attempt 1
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
@@ -91,7 +91,7 @@ def clear_input():
 def set_api_key():
     openai.api_key = st.session_state['api_key']
 
-# Initialize session state keys
+# Set default OpenAI API key if not already set
 if 'api_key' not in st.session_state:
     st.session_state['api_key'] = ''
 if 'wrong_key' not in st.session_state:
@@ -99,7 +99,7 @@ if 'wrong_key' not in st.session_state:
 
 # Define the lists of laws
 real_estate_laws = [
-    "", "Property Ownership", "Property Transfer", "Land Registration (Tinglysning)", "Mortgage Law",
+    "","Property Ownership", "Property Transfer", "Land Registration (Tinglysning)", "Mortgage Law",
     "Leasing and Tenancy Law", "Property Taxation", "Property Development", "Zoning Regulations",
     "Building Regulations", "Agricultural Property Law", "Easements and Rights of Way", "Condominium Law",
     "Cooperative Housing Law", "Expropriation Law", "Environmental Regulations", "Historical Preservation",
@@ -115,7 +115,7 @@ real_estate_laws = [
 ]
 
 finance_laws = [
-    "", "Banking Law", "Securities Law", "Investment Law", "Financial Regulation", "Insurance Law", "Pension Law",
+    "","Banking Law", "Securities Law", "Investment Law", "Financial Regulation", "Insurance Law", "Pension Law",
     "Corporate Finance Law", "Capital Markets Law", "Anti-Money Laundering Law", "Financial Crime Law", "Payment Services Law",
     "Credit Law", "Consumer Finance Law", "Financial Supervision", "Financial Instruments Law", "Financial Contracts Law",
     "Public Finance Law", "Tax Law", "Mergers and Acquisitions", "Financial Services Law", "Derivatives Law", "Accounting Law",
@@ -136,7 +136,7 @@ finance_laws = [
 ]
 
 business_laws = [
-    "", "Company Law", "Commercial Contracts", "Corporate Governance", "Mergers and Acquisitions", "Intellectual Property Law",
+    "","Company Law", "Commercial Contracts", "Corporate Governance", "Mergers and Acquisitions", "Intellectual Property Law",
     "Employment Law", "Competition Law", "Consumer Protection Law", "Bankruptcy and Insolvency Law", "Tax Law",
     "International Trade Law", "Environmental Law", "Energy Law", "Real Estate Law", "Financial Regulation", "Securities Law",
     "Anti-Money Laundering Law", "Data Protection Law", "E-commerce Law", "Public Procurement Law", "Franchise Law", "Agency Law",
@@ -179,6 +179,7 @@ if 'wrong_key' not in st.session_state:
     st.session_state['wrong_key'] = False
 
 # Load the logo image
+#logo_path = "C:\\Users\\sakis\\Downloads\\Screenshot_2024-06-04_232939-removebg-preview.png"
 logo_path = os.path.join(os.path.dirname(__file__), 'images', 'Screenshot_2024-06-04_232939-removebg-preview.png')
 logo = Image.open(logo_path)
 
@@ -226,19 +227,23 @@ with st.sidebar:
 
 # Function to get response from OpenAI
 def get_response(prompt):
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "You are a Danish legal expert with extensive knowledge of Danish law."},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=2000,
-        temperature=0.1,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0
-    )
-    return response.choices[0].message['content'].strip()
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=2000,
+            temperature=0.1,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0
+        )
+        return response.choices[0].message['content'].strip()
+    except Exception as e:
+        logging.error(f"Error in get_response: {e}")
+        return "An error occurred while trying to get a response."
 
 # Function to handle summary link click
 def handle_summary_click(point):
