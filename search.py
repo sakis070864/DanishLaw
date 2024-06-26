@@ -48,47 +48,33 @@ def findtxt(answer):
 
 
 # Function to handle "Answer The Question" button click
-
-
 def answer_question():
     if 'api_key' not in st.session_state or not st.session_state['api_key']:
-        st.error("API Key is required but missing or incorrect.")
         st.session_state['wrong_key'] = True
         return
 
     openai.api_key = st.session_state['api_key']
     try:
-        # Test the API key with a simple completion request
-        response = openai.Completion.create(
-            engine="davinci",  # Use an appropriate engine; "davinci" is typically available
-            prompt="Test API key with a simple request: What is AI?",
-            max_tokens=5
-        )
-        test_output = response.choices[0].text.strip() if response.choices else "No response."
-        st.write(f"API Test Success: {test_output}")  # Optionally display the test result
-    except Exception as e:  # Catching generic exceptions for simplicity
-        st.error(f"An error occurred while validating the API key: {str(e)}")
+        # Test the API key with a simple request
+        openai.Model.list()
+    except openai.error.AuthenticationError:
         st.session_state['wrong_key'] = True
         return
 
     if st.session_state['question']:
-        try:
-            askjura_response = Mekanism.askjura(st.session_state['question'])
-            detailed_answer = get_response(askjura_response)
-            st.session_state['answer'] = detailed_answer
+        # First Job: Get detailed response from ChatGPT
+        askjura_response = Mekanism.askjura(st.session_state['question'])
+        detailed_answer = get_response(askjura_response)
+        st.session_state['answer'] = detailed_answer
 
-            # Extract summary lines automatically after getting the answer
-            summary_lines = findtxt(detailed_answer)
-            st.session_state['summary_lines'] = summary_lines
+        # Extract summary lines automatically after getting the answer
+        summary_lines = findtxt(detailed_answer)
+        st.session_state['summary_lines'] = summary_lines
 
-            # Second Job: Get summary response from ChatGPT
-            links_response = Mekanism.links(st.session_state['question'])
-            summary_answer = get_response(links_response)
-            st.session_state['summary_points'] = summary_answer.split('\n')
-        except Exception as e:
-            st.error(f"An error occurred while processing the question: {str(e)}")
-
-
+        # Second Job: Get summary response from ChatGPT
+        links_response = Mekanism.links(st.session_state['question'])
+        summary_answer = get_response(links_response)
+        st.session_state['summary_points'] = summary_answer.split('\n')
 
 # Function to clear the input box
 def clear_input():
