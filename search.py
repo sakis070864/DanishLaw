@@ -55,26 +55,43 @@ def answer_question():
 
     openai.api_key = st.session_state['api_key']
     try:
-        # Test the API key with a simple request
-        openai.Model.list()
-    except openai.error.AuthenticationError:
+        # Assuming the use of an API call that reflects the current capabilities of the OpenAI API
+        response = openai.Completion.create(
+            model="text-davinci-003",  # Replace with your specific model
+            prompt="Test API key with a simple request",
+            max_tokens=5
+        )
+    except openai.APIError as e:
+        st.error(f"API error: {str(e)}")
+        st.session_state['wrong_key'] = True
+        return
+    except openai.RateLimitError as e:
+        st.error("Rate limit exceeded. Please try again later.")
+        st.session_state['wrong_key'] = True
+        return
+    except Exception as e:  # Generic catch-all for other exceptions
+        st.error(f"An unexpected error occurred: {str(e)}")
         st.session_state['wrong_key'] = True
         return
 
     if st.session_state['question']:
         # First Job: Get detailed response from ChatGPT
-        askjura_response = Mekanism.askjura(st.session_state['question'])
-        detailed_answer = get_response(askjura_response)
-        st.session_state['answer'] = detailed_answer
+        try:
+            askjura_response = Mekanism.askjura(st.session_state['question'])
+            detailed_answer = get_response(askjura_response)
+            st.session_state['answer'] = detailed_answer
 
-        # Extract summary lines automatically after getting the answer
-        summary_lines = findtxt(detailed_answer)
-        st.session_state['summary_lines'] = summary_lines
+            # Extract summary lines automatically after getting the answer
+            summary_lines = findtxt(detailed_answer)
+            st.session_state['summary_lines'] = summary_lines
 
-        # Second Job: Get summary response from ChatGPT
-        links_response = Mekanism.links(st.session_state['question'])
-        summary_answer = get_response(links_response)
-        st.session_state['summary_points'] = summary_answer.split('\n')
+            # Second Job: Get summary response from ChatGPT
+            links_response = Mekanism.links(st.session_state['question'])
+            summary_answer = get_response(links_response)
+            st.session_state['summary_points'] = summary_answer.split('\n')
+        except Exception as e:
+            st.error(f"An error occurred while processing the question: {str(e)}")
+            return
 
 # Function to clear the input box
 def clear_input():
