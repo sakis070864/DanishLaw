@@ -51,15 +51,16 @@ def findtxt(answer):
 def answer_question():
     if 'api_key' not in st.session_state or not st.session_state['api_key']:
         st.session_state['wrong_key'] = True
+        st.error("API Key is missing or incorrect.")
         return
 
     openai.api_key = st.session_state['api_key']
     try:
-        # Assuming the use of an API call that reflects the current capabilities of the OpenAI API
-        response = openai.Completion.create(
-            model="text-davinci-003",  # Replace with your specific model
-            prompt="Test API key with a simple request",
-            max_tokens=5
+        # New API call pattern
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "system", "content": "You are a helpful assistant."},
+                      {"role": "user", "content": "Tell me a joke."}]
         )
     except openai.APIError as e:
         st.error(f"API error: {str(e)}")
@@ -69,13 +70,12 @@ def answer_question():
         st.error("Rate limit exceeded. Please try again later.")
         st.session_state['wrong_key'] = True
         return
-    except Exception as e:  # Generic catch-all for other exceptions
+    except Exception as e:
         st.error(f"An unexpected error occurred: {str(e)}")
         st.session_state['wrong_key'] = True
         return
 
     if st.session_state['question']:
-        # First Job: Get detailed response from ChatGPT
         try:
             askjura_response = Mekanism.askjura(st.session_state['question'])
             detailed_answer = get_response(askjura_response)
@@ -92,6 +92,7 @@ def answer_question():
         except Exception as e:
             st.error(f"An error occurred while processing the question: {str(e)}")
             return
+
 
 # Function to clear the input box
 def clear_input():
