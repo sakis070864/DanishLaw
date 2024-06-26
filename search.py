@@ -49,7 +49,6 @@ def findtxt(answer):
 
 # Function to handle "Answer The Question" button click
 
-import openai
 
 def answer_question():
     if 'api_key' not in st.session_state or not st.session_state['api_key']:
