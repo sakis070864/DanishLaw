@@ -50,33 +50,28 @@ def findtxt(answer):
 # Function to handle "Answer The Question" button click
 def answer_question():
     if 'api_key' not in st.session_state or not st.session_state['api_key']:
+        st.error("API Key is required but missing or incorrect.")
         st.session_state['wrong_key'] = True
-        st.error("API Key is missing or incorrect.")
         return
 
     openai.api_key = st.session_state['api_key']
     try:
-        # New API call pattern
-        response = openai.ChatCompletion.create(
-            model="gpt-4o",
-            messages=[{"role": "system", "content": "You are a helpful assistant."},
-                      {"role": "user", "content": "Tell me a joke."}]
+        # Simple API request to validate the API key and test connectivity
+        response = openai.Completion.create(
+            engine="davinci",  # Ensure this engine is available in your API plan
+            prompt="Test API key with a simple request: What is AI?",
+            max_tokens=2000
         )
-    except openai.APIError as e:
-        st.error(f"API error: {str(e)}")
-        st.session_state['wrong_key'] = True
-        return
-    except openai.RateLimitError as e:
-        st.error("Rate limit exceeded. Please try again later.")
-        st.session_state['wrong_key'] = True
-        return
-    except Exception as e:
-        st.error(f"An unexpected error occurred: {str(e)}")
+        test_output = response.choices[0].text.strip() if response.choices else "No response."
+        st.info(f"API Test Success: {test_output}")  # Display test result for debugging
+    except openai.Error as e:  # Handling any errors from the OpenAI API
+        st.error(f"Failed to validate API key: {str(e)}")
         st.session_state['wrong_key'] = True
         return
 
     if st.session_state['question']:
         try:
+            # Assuming askjura is a valid function from the Mekanism module that fetches responses
             askjura_response = Mekanism.askjura(st.session_state['question'])
             detailed_answer = get_response(askjura_response)
             st.session_state['answer'] = detailed_answer
@@ -85,14 +80,12 @@ def answer_question():
             summary_lines = findtxt(detailed_answer)
             st.session_state['summary_lines'] = summary_lines
 
-            # Second Job: Get summary response from ChatGPT
+            # Second job: Get a summary response
             links_response = Mekanism.links(st.session_state['question'])
             summary_answer = get_response(links_response)
             st.session_state['summary_points'] = summary_answer.split('\n')
         except Exception as e:
             st.error(f"An error occurred while processing the question: {str(e)}")
-            return
-
 
 # Function to clear the input box
 def clear_input():
