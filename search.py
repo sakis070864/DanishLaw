@@ -5,17 +5,17 @@ import Mekanism  # Ensure this module is correctly imported
 import re  # Import re module for the findtxt function
 import logging
 import os
-
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
+# Function to find and extract summary lines from the answer
 # Function to find and extract summary lines from the answer
 def findtxt(answer):
     logging.info(f"findtxt called with answer: {answer}")
     
     # Check if answer has text
     if answer:
-        # Search for the keywords "**SUMMARY**," "**Summary**," or "**summary**"
+        # Search for the keywords "**SUMMARY**," "**Summary**," "**summary**," or "**Key Points:**"
         summary_match = re.search(r'\*\*SUMMARY\*\*|\*\*Summary\*\*|\*\*summary\*\*', answer)
         if summary_match:
             # Find the position of the keyword
@@ -23,6 +23,12 @@ def findtxt(answer):
             # Extract the text after the keyword
             after_summary_text = answer[start_pos:].strip()
             
+            # Look for "Key Points" after the summary keyword
+            key_points_match = re.search(r'\*\*Key Points:?\*\*', after_summary_text)
+            if key_points_match:
+                start_pos = key_points_match.end()
+                after_summary_text = after_summary_text[start_pos:].strip()
+
             # Extract the lines under the keyword
             summary_lines = []
             for line in after_summary_text.split('\n'):
@@ -39,6 +45,7 @@ def findtxt(answer):
         st.write("NOT TEXT")
     
     return []
+
 
 # Function to handle "Answer The Question" button click
 def answer_question():
@@ -173,7 +180,6 @@ if 'wrong_key' not in st.session_state:
     st.session_state['wrong_key'] = False
 
 # Load the logo image
-#logo_path = "C:\\Users\\sakis\\Downloads\\Screenshot_2024-06-04_232939-removebg-preview.png"
 logo_path = os.path.join(os.path.dirname(__file__), 'images', 'Screenshot_2024-06-04_232939-removebg-preview.png')
 logo = Image.open(logo_path)
 
