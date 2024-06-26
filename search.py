@@ -48,8 +48,6 @@ def findtxt(answer):
 
 
 # Function to handle "Answer The Question" button click
-import openai
-import streamlit as st
 
 def answer_question():
     # Check if API key is present in the session state
