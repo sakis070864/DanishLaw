@@ -48,33 +48,54 @@ def findtxt(answer):
 
 
 # Function to handle "Answer The Question" button click
+import openai
+import streamlit as st
+
 def answer_question():
+    # Check if API key is present in the session state
     if 'api_key' not in st.session_state or not st.session_state['api_key']:
-        st.session_state['wrong_key'] = True
-        return
+        st.error("API Key is missing or incorrect.")  # Display an error message on the app
+        st.session_state['wrong_key'] = True  # Set a flag in session state to indicate wrong API key
+        return  # Exit the function if API key is missing or wrong
 
+    # Set the API key for the OpenAI API calls
     openai.api_key = st.session_state['api_key']
+
     try:
-        # Test the API key with a simple request
-        openai.Model.list()
-    except openai.error.AuthenticationError:
-        st.session_state['wrong_key'] = True
-        return
+        # Make a call to the OpenAI API with a simple test prompt to validate the API key and connectivity
+        response = openai.Completion.create(
+            engine="davinci",  # Specify the AI model engine, adjust as needed based on your API plan
+            prompt="Hello, world!",  # Test prompt
+            max_tokens=5  # Limit the number of tokens generated
+        )
+        # Write the response from OpenAI API to the Streamlit app
+        st.write(response.choices[0].text.strip())
+    except Exception as e:
+        # Catch any type of Exception and display an error message on the app
+        st.error(f"Failed to make OpenAI API call: {str(e)}")
+        st.session_state['wrong_key'] = True  # Optionally use a different flag for general API call failures
+        return  # Exit the function upon encountering an error
 
+    # Additional application logic after the API call is successful
     if st.session_state['question']:
-        # First Job: Get detailed response from ChatGPT
-        askjura_response = Mekanism.askjura(st.session_state['question'])
-        detailed_answer = get_response(askjura_response)
-        st.session_state['answer'] = detailed_answer
+        try:
+            # Example function to process the question - replace with actual functionality as needed
+            # Mekanism.askjura might be a hypothetical function to process questions
+            askjura_response = Mekanism.askjura(st.session_state['question'])
+            detailed_answer = get_response(askjura_response)
+            st.session_state['answer'] = detailed_answer
 
-        # Extract summary lines automatically after getting the answer
-        summary_lines = findtxt(detailed_answer)
-        st.session_state['summary_lines'] = summary_lines
+            # Extract and display summary lines from the detailed answer
+            summary_lines = findtxt(detailed_answer)
+            st.session_state['summary_lines'] = summary_lines
 
-        # Second Job: Get summary response from ChatGPT
-        links_response = Mekanism.links(st.session_state['question'])
-        summary_answer = get_response(links_response)
-        st.session_state['summary_points'] = summary_answer.split('\n')
+            # Example of handling a secondary response, like fetching links related to the question
+            links_response = Mekanism.links(st.session_state['question'])
+            summary_answer = get_response(links_response)
+            st.session_state['summary_points'] = summary_answer.split('\n')
+        except Exception as e:
+            # Catch and display errors related to processing the question or handling responses
+            st.error(f"An error occurred while processing the question: {str(e)}")
 
 # Function to clear the input box
 def clear_input():
