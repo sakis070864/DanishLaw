@@ -48,6 +48,8 @@ def findtxt(answer):
 
 
 # Function to handle "Answer The Question" button click
+import openai
+import streamlit as st
 
 def answer_question():
     # Check if API key is present in the session state
@@ -94,6 +96,7 @@ def answer_question():
         except Exception as e:
             # Catch and display errors related to processing the question or handling responses
             st.error(f"An error occurred while processing the question: {str(e)}")
+
 
 # Function to clear the input box
 def clear_input():
