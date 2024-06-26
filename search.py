@@ -2,14 +2,13 @@ import streamlit as st
 from PIL import Image
 import openai
 import Mekanism  # Ensure this module is correctly imported
-import re  # Import re module for the findtxt function
+import re
 import logging
 import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-# Function to find and extract summary lines from the answer
 # Function to find and extract summary lines from the answer
 def findtxt(answer):
     logging.info(f"findtxt called with answer: {answer}")
@@ -46,7 +45,6 @@ def findtxt(answer):
         st.write("NOT TEXT")
     
     return []
-
 
 # Function to handle "Answer The Question" button click
 def answer_question():
@@ -93,7 +91,7 @@ def clear_input():
 def set_api_key():
     openai.api_key = st.session_state['api_key']
 
-# Set default OpenAI API key if not already set
+# Initialize session state keys
 if 'api_key' not in st.session_state:
     st.session_state['api_key'] = ''
 if 'wrong_key' not in st.session_state:
@@ -101,7 +99,7 @@ if 'wrong_key' not in st.session_state:
 
 # Define the lists of laws
 real_estate_laws = [
-    "","Property Ownership", "Property Transfer", "Land Registration (Tinglysning)", "Mortgage Law",
+    "", "Property Ownership", "Property Transfer", "Land Registration (Tinglysning)", "Mortgage Law",
     "Leasing and Tenancy Law", "Property Taxation", "Property Development", "Zoning Regulations",
     "Building Regulations", "Agricultural Property Law", "Easements and Rights of Way", "Condominium Law",
     "Cooperative Housing Law", "Expropriation Law", "Environmental Regulations", "Historical Preservation",
@@ -117,7 +115,7 @@ real_estate_laws = [
 ]
 
 finance_laws = [
-    "","Banking Law", "Securities Law", "Investment Law", "Financial Regulation", "Insurance Law", "Pension Law",
+    "", "Banking Law", "Securities Law", "Investment Law", "Financial Regulation", "Insurance Law", "Pension Law",
     "Corporate Finance Law", "Capital Markets Law", "Anti-Money Laundering Law", "Financial Crime Law", "Payment Services Law",
     "Credit Law", "Consumer Finance Law", "Financial Supervision", "Financial Instruments Law", "Financial Contracts Law",
     "Public Finance Law", "Tax Law", "Mergers and Acquisitions", "Financial Services Law", "Derivatives Law", "Accounting Law",
@@ -138,7 +136,7 @@ finance_laws = [
 ]
 
 business_laws = [
-    "","Company Law", "Commercial Contracts", "Corporate Governance", "Mergers and Acquisitions", "Intellectual Property Law",
+    "", "Company Law", "Commercial Contracts", "Corporate Governance", "Mergers and Acquisitions", "Intellectual Property Law",
     "Employment Law", "Competition Law", "Consumer Protection Law", "Bankruptcy and Insolvency Law", "Tax Law",
     "International Trade Law", "Environmental Law", "Energy Law", "Real Estate Law", "Financial Regulation", "Securities Law",
     "Anti-Money Laundering Law", "Data Protection Law", "E-commerce Law", "Public Procurement Law", "Franchise Law", "Agency Law",
@@ -181,7 +179,6 @@ if 'wrong_key' not in st.session_state:
     st.session_state['wrong_key'] = False
 
 # Load the logo image
-#logo_path = "C:\\Users\\sakis\\Downloads\\Screenshot_2024-06-04_232939-removebg-preview.png"
 logo_path = os.path.join(os.path.dirname(__file__), 'images', 'Screenshot_2024-06-04_232939-removebg-preview.png')
 logo = Image.open(logo_path)
 
@@ -230,9 +227,9 @@ with st.sidebar:
 # Function to get response from OpenAI
 def get_response(prompt):
     response = openai.ChatCompletion.create(
-        model="gpt-4o",
+        model="gpt-4",
         messages=[
-            {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law. rrr."},
+            {"role": "system", "content": "You are a Danish legal expert with extensive knowledge of Danish law."},
             {"role": "user", "content": prompt}
         ],
         max_tokens=2000,
@@ -326,3 +323,4 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+
