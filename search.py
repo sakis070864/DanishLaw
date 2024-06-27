@@ -56,7 +56,7 @@ def answer_question():
     openai.api_key = st.session_state['api_key']
     try:
         # Test the API key with a simple request
-        openai.ChatCompletion.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[{"role": "user", "content": "Test API key"}],
             max_tokens=10
@@ -66,19 +66,23 @@ def answer_question():
         return
 
     if st.session_state['question']:
-        # First Job: Get detailed response from ChatGPT
-        askjura_response = Mekanism.askjura(st.session_state['question'])
-        detailed_answer = get_response(askjura_response)
-        st.session_state['answer'] = detailed_answer
+        try:
+            # First Job: Get detailed response from ChatGPT
+            askjura_response = Mekanism.askjura(st.session_state['question'])
+            detailed_answer = get_response(askjura_response)
+            st.session_state['answer'] = detailed_answer
 
-        # Extract summary lines automatically after getting the answer
-        summary_lines = findtxt(detailed_answer)
-        st.session_state['summary_lines'] = summary_lines
+            # Extract summary lines automatically after getting the answer
+            summary_lines = findtxt(detailed_answer)
+            st.session_state['summary_lines'] = summary_lines
 
-        # Second Job: Get summary response from ChatGPT
-        links_response = Mekanism.links(st.session_state['question'])
-        summary_answer = get_response(links_response)
-        st.session_state['summary_points'] = summary_answer.split('\n')
+            # Second Job: Get summary response from ChatGPT
+            links_response = Mekanism.links(st.session_state['question'])
+            summary_answer = get_response(links_response)
+            st.session_state['summary_points'] = summary_answer.split('\n')
+        except Exception as e:
+            st.write(f"Error: {e}")
+            logging.error(f"Failed to get response: {e}")
 
 # Function to clear the input box
 def clear_input():
@@ -231,19 +235,23 @@ with st.sidebar:
 
 # Function to get response from OpenAI
 def get_response(prompt):
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law. rrr."},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=2000,
-        temperature=0.1,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0
-    )
-    return response.choices[0]['message']['content'].strip()
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law. rrr."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=2000,
+            temperature=0.1,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0
+        )
+        return response['choices'][0]['message']['content'].strip()
+    except Exception as e:
+        logging.error(f"Error getting response from OpenAI: {e}")
+        return str(e)
 
 # Function to handle summary link click
 def handle_summary_click(point):
@@ -328,7 +336,6 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-
 
 
 
