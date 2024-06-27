@@ -1,51 +1,29 @@
-import streamlit as st
-from PIL import Image
 import openai
-import Mekanism  # Ensure this module is correctly imported
-import re  # Import re module for the findtxt function
+import Mekanism
+import re
 import logging
 import os
+import streamlit as st
+from PIL import Image
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
 # Function to find and extract summary lines from the answer
-# Function to find and extract summary lines from the answer
 def findtxt(answer):
     logging.info(f"findtxt called with answer: {answer}")
-    
-    # Check if answer has text
     if answer:
-        # Search for the keywords "**SUMMARY**," "**Summary**," "**summary**," or "**Key Points:**"
         summary_match = re.search(r'\*\*SUMMARY\*\*|\*\*Summary\*\*|\*\*summary\*\*', answer)
         if summary_match:
-            # Find the position of the keyword
             start_pos = summary_match.end()
-            # Extract the text after the keyword
             after_summary_text = answer[start_pos:].strip()
-            
-            # Look for "Key Points" after the summary keyword
-            key_points_match = re.search(r'\*\*Key Points:?\*\*', after_summary_text)
-            if key_points_match:
-                start_pos = key_points_match.end()
-                after_summary_text = after_summary_text[start_pos:].strip()
-
-            # Extract the lines under the keyword
-            summary_lines = []
-            for line in after_summary_text.split('\n'):
-                line = line.strip()
-                if line:
-                    summary_lines.append(line)
-                elif line == "":  # Stop if an empty line is encountered
-                    break
-            
+            summary_lines = [line.strip() for line in after_summary_text.split('\n') if line.strip()]
             return summary_lines
         else:
             st.write("I DON'T FIND SUMMARY")
     else:
         st.write("NOT TEXT")
-    
     return []
-
 
 # Function to handle "Answer The Question" button click
 def answer_question():
@@ -55,26 +33,41 @@ def answer_question():
 
     openai.api_key = st.session_state['api_key']
     try:
-        # Test the API key with a simple request
         openai.Model.list()
-    except openai.error.AuthenticationError:
+    except openai.error.OpenAIError:
         st.session_state['wrong_key'] = True
         return
 
     if st.session_state['question']:
-        # First Job: Get detailed response from ChatGPT
         askjura_response = Mekanism.askjura(st.session_state['question'])
         detailed_answer = get_response(askjura_response)
         st.session_state['answer'] = detailed_answer
 
-        # Extract summary lines automatically after getting the answer
         summary_lines = findtxt(detailed_answer)
         st.session_state['summary_lines'] = summary_lines
 
-        # Second Job: Get summary response from ChatGPT
         links_response = Mekanism.links(st.session_state['question'])
         summary_answer = get_response(links_response)
         st.session_state['summary_points'] = summary_answer.split('\n')
+
+# Function to get response from OpenAI
+def get_response(prompt):
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law."},
+            {"role": "user", "content": prompt}
+        ],
+        max_tokens=2000,
+        temperature=0.1,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0
+    )
+    return response.choices[0].message['content'].strip()
+
+# Other functions and Streamlit UI setup...
+
 
 # Function to clear the input box
 def clear_input():
