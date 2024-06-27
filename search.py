@@ -1,10 +1,10 @@
-import openai
-import Mekanism
-import re
-import logging
-import os
 import streamlit as st
 from PIL import Image
+import openai
+import Mekanism  # Ensure this module is correctly imported
+import re  # Import re module for the findtxt function
+import logging
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -33,41 +33,29 @@ def answer_question():
 
     openai.api_key = st.session_state['api_key']
     try:
+        # Test the API key with a simple request
         openai.Model.list()
-    except openai.error.OpenAIError:
+    except openai.error.AuthenticationError:
         st.session_state['wrong_key'] = True
         return
 
     if st.session_state['question']:
-        askjura_response = Mekanism.askjura(st.session_state['question'])
-        detailed_answer = get_response(askjura_response)
-        st.session_state['answer'] = detailed_answer
+        try:
+            # First Job: Get detailed response from ChatGPT
+            askjura_response = Mekanism.askjura(st.session_state['question'])
+            detailed_answer = get_response(askjura_response)
+            st.session_state['answer'] = detailed_answer
 
-        summary_lines = findtxt(detailed_answer)
-        st.session_state['summary_lines'] = summary_lines
+            # Extract summary lines automatically after getting the answer
+            summary_lines = findtxt(detailed_answer)
+            st.session_state['summary_lines'] = summary_lines
 
-        links_response = Mekanism.links(st.session_state['question'])
-        summary_answer = get_response(links_response)
-        st.session_state['summary_points'] = summary_answer.split('\n')
-
-# Function to get response from OpenAI
-def get_response(prompt):
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law."},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=2000,
-        temperature=0.1,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0
-    )
-    return response.choices[0].message['content'].strip()
-
-# Other functions and Streamlit UI setup...
-
+            # Second Job: Get summary response from ChatGPT
+            links_response = Mekanism.links(st.session_state['question'])
+            summary_answer = get_response(links_response)
+            st.session_state['summary_points'] = summary_answer.split('\n')
+        except Exception as e:
+            logging.error(f"Failed to get response: {e}")
 
 # Function to clear the input box
 def clear_input():
@@ -300,7 +288,6 @@ if st.session_state['answer']:
     st.write("You asked: ", st.session_state['question'])
     st.write("Answer: ", st.session_state['answer'])
     
-    # Extract summary lines and display them as clickable buttons
     if st.session_state['summary_lines']:
         st.write("Summary Points:")
         for i, line in enumerate(st.session_state['summary_lines']):
@@ -317,4 +304,5 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+
 
