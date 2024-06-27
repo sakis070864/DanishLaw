@@ -38,7 +38,8 @@ def answer_question():
         if not response:
             st.session_state['wrong_key'] = True
             return
-    except openai.error.AuthenticationError:
+    except openai.OpenAIError as e:
+        logging.error(f"Failed to authenticate API key: {e}")
         st.session_state['wrong_key'] = True
         return
 
@@ -291,6 +292,7 @@ if st.session_state['answer']:
     st.write("You asked: ", st.session_state['question'])
     st.write("Answer: ", st.session_state['answer'])
     
+    # Extract summary lines and display them as clickable buttons
     if st.session_state['summary_lines']:
         st.write("Summary Points:")
         for i, line in enumerate(st.session_state['summary_lines']):
@@ -307,6 +309,4 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-
-
 
