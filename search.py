@@ -34,7 +34,10 @@ def answer_question():
     openai.api_key = st.session_state['api_key']
     try:
         # Test the API key with a simple request
-        openai.Model.list()
+        response = openai.Engine.list()
+        if not response:
+            st.session_state['wrong_key'] = True
+            return
     except openai.error.AuthenticationError:
         st.session_state['wrong_key'] = True
         return
@@ -209,7 +212,7 @@ with st.sidebar:
 # Function to get response from OpenAI
 def get_response(prompt):
     response = openai.ChatCompletion.create(
-        model="gpt-4o",
+        model="gpt-4",
         messages=[
             {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law. rrr."},
             {"role": "user", "content": prompt}
@@ -304,5 +307,6 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+
 
 
