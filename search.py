@@ -47,7 +47,6 @@ def findtxt(answer):
     
     return []
 
-
 # Function to handle "Answer The Question" button click
 def answer_question():
     if 'api_key' not in st.session_state or not st.session_state['api_key']:
@@ -57,7 +56,11 @@ def answer_question():
     openai.api_key = st.session_state['api_key']
     try:
         # Test the API key with a simple request
-        openai.Model.list()
+        openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": "Test API key"}],
+            max_tokens=10
+        )
     except AuthenticationError:
         st.session_state['wrong_key'] = True
         return
@@ -240,7 +243,7 @@ def get_response(prompt):
         frequency_penalty=0,
         presence_penalty=0
     )
-    return response.choices[0].message['content'].strip()
+    return response.choices[0]['message']['content'].strip()
 
 # Function to handle summary link click
 def handle_summary_click(point):
@@ -325,6 +328,7 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+
 
 
 
