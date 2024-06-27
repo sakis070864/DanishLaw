@@ -56,9 +56,9 @@ def answer_question():
     openai.api_key = st.session_state['api_key']
     try:
         # Test the API key with a simple request
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": "Test API key"}],
+        response = openai.Completion.create(
+            engine="text-davinci-003",
+            prompt="Test API key",
             max_tokens=10
         )
     except AuthenticationError:
@@ -236,19 +236,16 @@ with st.sidebar:
 # Function to get response from OpenAI
 def get_response(prompt):
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law. rrr."},
-                {"role": "user", "content": prompt}
-            ],
+        response = openai.Completion.create(
+            engine="text-davinci-003",
+            prompt=prompt,
             max_tokens=2000,
             temperature=0.1,
             top_p=1,
             frequency_penalty=0,
             presence_penalty=0
         )
-        return response['choices'][0]['message']['content'].strip()
+        return response.choices[0].text.strip()
     except Exception as e:
         logging.error(f"Error getting response from OpenAI: {e}")
         return str(e)
@@ -336,6 +333,5 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-
 
 
