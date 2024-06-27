@@ -46,8 +46,11 @@ def answer_question():
     if st.session_state['question']:
         try:
             # First Job: Get detailed response from ChatGPT
+            logging.info(f"Asking Mekanism: {st.session_state['question']}")
             askjura_response = Mekanism.askjura(st.session_state['question'])
+            logging.info(f"Mekanism response: {askjura_response}")
             detailed_answer = get_response(askjura_response)
+            logging.info(f"ChatGPT detailed answer: {detailed_answer}")
             st.session_state['answer'] = detailed_answer
 
             # Extract summary lines automatically after getting the answer
@@ -56,7 +59,9 @@ def answer_question():
 
             # Second Job: Get summary response from ChatGPT
             links_response = Mekanism.links(st.session_state['question'])
+            logging.info(f"Mekanism links response: {links_response}")
             summary_answer = get_response(links_response)
+            logging.info(f"ChatGPT summary answer: {summary_answer}")
             st.session_state['summary_points'] = summary_answer.split('\n')
         except Exception as e:
             logging.error(f"Failed to get response: {e}")
@@ -312,5 +317,6 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+
 
 
