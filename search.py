@@ -5,10 +5,11 @@ import Mekanism  # Ensure this module is correctly imported
 import re  # Import re module for the findtxt function
 import logging
 import os
+from openai.error import AuthenticationError  # Import AuthenticationError
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-# Function to find and extract summary lines from the answer
 # Function to find and extract summary lines from the answer
 def findtxt(answer):
     logging.info(f"findtxt called with answer: {answer}")
@@ -57,7 +58,7 @@ def answer_question():
     try:
         # Test the API key with a simple request
         openai.Model.list()
-    except openai.error.AuthenticationError:
+    except AuthenticationError:
         st.session_state['wrong_key'] = True
         return
 
@@ -100,7 +101,7 @@ if 'wrong_key' not in st.session_state:
 
 # Define the lists of laws
 real_estate_laws = [
-    "","Property Ownership", "Property Transfer", "Land Registration (Tinglysning)", "Mortgage Law",
+    "Property Ownership", "Property Transfer", "Land Registration (Tinglysning)", "Mortgage Law",
     "Leasing and Tenancy Law", "Property Taxation", "Property Development", "Zoning Regulations",
     "Building Regulations", "Agricultural Property Law", "Easements and Rights of Way", "Condominium Law",
     "Cooperative Housing Law", "Expropriation Law", "Environmental Regulations", "Historical Preservation",
@@ -116,7 +117,7 @@ real_estate_laws = [
 ]
 
 finance_laws = [
-    "","Banking Law", "Securities Law", "Investment Law", "Financial Regulation", "Insurance Law", "Pension Law",
+    "Banking Law", "Securities Law", "Investment Law", "Financial Regulation", "Insurance Law", "Pension Law",
     "Corporate Finance Law", "Capital Markets Law", "Anti-Money Laundering Law", "Financial Crime Law", "Payment Services Law",
     "Credit Law", "Consumer Finance Law", "Financial Supervision", "Financial Instruments Law", "Financial Contracts Law",
     "Public Finance Law", "Tax Law", "Mergers and Acquisitions", "Financial Services Law", "Derivatives Law", "Accounting Law",
@@ -137,7 +138,7 @@ finance_laws = [
 ]
 
 business_laws = [
-    "","Company Law", "Commercial Contracts", "Corporate Governance", "Mergers and Acquisitions", "Intellectual Property Law",
+    "Company Law", "Commercial Contracts", "Corporate Governance", "Mergers and Acquisitions", "Intellectual Property Law",
     "Employment Law", "Competition Law", "Consumer Protection Law", "Bankruptcy and Insolvency Law", "Tax Law",
     "International Trade Law", "Environmental Law", "Energy Law", "Real Estate Law", "Financial Regulation", "Securities Law",
     "Anti-Money Laundering Law", "Data Protection Law", "E-commerce Law", "Public Procurement Law", "Franchise Law", "Agency Law",
@@ -228,7 +229,7 @@ with st.sidebar:
 # Function to get response from OpenAI
 def get_response(prompt):
     response = openai.ChatCompletion.create(
-        model="gpt-4o",
+        model="gpt-4",
         messages=[
             {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law. rrr."},
             {"role": "user", "content": prompt}
@@ -324,5 +325,6 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+
 
 
