@@ -2,34 +2,50 @@ import streamlit as st
 from PIL import Image
 import openai
 import Mekanism  # Ensure this module is correctly imported
-import re
+import re  # Import re module for the findtxt function
 import logging
 import os
-from openai.error import AuthenticationError
-
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
 # Function to find and extract summary lines from the answer
+# Function to find and extract summary lines from the answer
 def findtxt(answer):
     logging.info(f"findtxt called with answer: {answer}")
     
+    # Check if answer has text
     if answer:
+        # Search for the keywords "**SUMMARY**," "**Summary**," "**summary**," or "**Key Points:**"
         summary_match = re.search(r'\*\*SUMMARY\*\*|\*\*Summary\*\*|\*\*summary\*\*', answer)
         if summary_match:
+            # Find the position of the keyword
             start_pos = summary_match.end()
+            # Extract the text after the keyword
             after_summary_text = answer[start_pos:].strip()
+            
+            # Look for "Key Points" after the summary keyword
             key_points_match = re.search(r'\*\*Key Points:?\*\*', after_summary_text)
             if key_points_match:
                 start_pos = key_points_match.end()
                 after_summary_text = after_summary_text[start_pos:].strip()
-            summary_lines = [line.strip() for line in after_summary_text.split('\n') if line.strip()]
+
+            # Extract the lines under the keyword
+            summary_lines = []
+            for line in after_summary_text.split('\n'):
+                line = line.strip()
+                if line:
+                    summary_lines.append(line)
+                elif line == "":  # Stop if an empty line is encountered
+                    break
+            
             return summary_lines
         else:
             st.write("I DON'T FIND SUMMARY")
     else:
         st.write("NOT TEXT")
+    
     return []
+
 
 # Function to handle "Answer The Question" button click
 def answer_question():
@@ -40,33 +56,25 @@ def answer_question():
     openai.api_key = st.session_state['api_key']
     try:
         # Test the API key with a simple request
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": "Test API key"}],
-            max_tokens=10
-        )
-    except AuthenticationError:
+        openai.Model.list()
+    except openai.error.AuthenticationError:
         st.session_state['wrong_key'] = True
         return
 
     if st.session_state['question']:
-        try:
-            # First Job: Get detailed response from ChatGPT
-            askjura_response = Mekanism.askjura(st.session_state['question'])
-            detailed_answer = get_response(askjura_response)
-            st.session_state['answer'] = detailed_answer
+        # First Job: Get detailed response from ChatGPT
+        askjura_response = Mekanism.askjura(st.session_state['question'])
+        detailed_answer = get_response(askjura_response)
+        st.session_state['answer'] = detailed_answer
 
-            # Extract summary lines automatically after getting the answer
-            summary_lines = findtxt(detailed_answer)
-            st.session_state['summary_lines'] = summary_lines
+        # Extract summary lines automatically after getting the answer
+        summary_lines = findtxt(detailed_answer)
+        st.session_state['summary_lines'] = summary_lines
 
-            # Second Job: Get summary response from ChatGPT
-            links_response = Mekanism.links(st.session_state['question'])
-            summary_answer = get_response(links_response)
-            st.session_state['summary_points'] = summary_answer.split('\n')
-        except Exception as e:
-            st.write(f"Error: {e}")
-            logging.error(f"Failed to get response: {e}")
+        # Second Job: Get summary response from ChatGPT
+        links_response = Mekanism.links(st.session_state['question'])
+        summary_answer = get_response(links_response)
+        st.session_state['summary_points'] = summary_answer.split('\n')
 
 # Function to clear the input box
 def clear_input():
@@ -92,7 +100,7 @@ if 'wrong_key' not in st.session_state:
 
 # Define the lists of laws
 real_estate_laws = [
-    "Property Ownership", "Property Transfer", "Land Registration (Tinglysning)", "Mortgage Law",
+    "","Property Ownership", "Property Transfer", "Land Registration (Tinglysning)", "Mortgage Law",
     "Leasing and Tenancy Law", "Property Taxation", "Property Development", "Zoning Regulations",
     "Building Regulations", "Agricultural Property Law", "Easements and Rights of Way", "Condominium Law",
     "Cooperative Housing Law", "Expropriation Law", "Environmental Regulations", "Historical Preservation",
@@ -108,7 +116,7 @@ real_estate_laws = [
 ]
 
 finance_laws = [
-    "Banking Law", "Securities Law", "Investment Law", "Financial Regulation", "Insurance Law", "Pension Law",
+    "","Banking Law", "Securities Law", "Investment Law", "Financial Regulation", "Insurance Law", "Pension Law",
     "Corporate Finance Law", "Capital Markets Law", "Anti-Money Laundering Law", "Financial Crime Law", "Payment Services Law",
     "Credit Law", "Consumer Finance Law", "Financial Supervision", "Financial Instruments Law", "Financial Contracts Law",
     "Public Finance Law", "Tax Law", "Mergers and Acquisitions", "Financial Services Law", "Derivatives Law", "Accounting Law",
@@ -129,7 +137,7 @@ finance_laws = [
 ]
 
 business_laws = [
-    "Company Law", "Commercial Contracts", "Corporate Governance", "Mergers and Acquisitions", "Intellectual Property Law",
+    "","Company Law", "Commercial Contracts", "Corporate Governance", "Mergers and Acquisitions", "Intellectual Property Law",
     "Employment Law", "Competition Law", "Consumer Protection Law", "Bankruptcy and Insolvency Law", "Tax Law",
     "International Trade Law", "Environmental Law", "Energy Law", "Real Estate Law", "Financial Regulation", "Securities Law",
     "Anti-Money Laundering Law", "Data Protection Law", "E-commerce Law", "Public Procurement Law", "Franchise Law", "Agency Law",
@@ -219,23 +227,19 @@ with st.sidebar:
 
 # Function to get response from OpenAI
 def get_response(prompt):
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=2000,
-            temperature=0.1,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0
-        )
-        return response['choices'][0]['message']['content'].strip()
-    except Exception as e:
-        logging.error(f"Error getting response from OpenAI: {e}")
-        return str(e)
+    response = openai.ChatCompletion.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law. rrr."},
+            {"role": "user", "content": prompt}
+        ],
+        max_tokens=2000,
+        temperature=0.1,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0
+    )
+    return response.choices[0].message['content'].strip()
 
 # Function to handle summary link click
 def handle_summary_click(point):
@@ -320,8 +324,6 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-
-
 
 
 
