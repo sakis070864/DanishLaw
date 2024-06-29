@@ -9,7 +9,6 @@ import os
 logging.basicConfig(level=logging.INFO)
 
 # Function to find and extract summary lines from the answer
-# Function to find and extract summary lines from the answer
 def findtxt(answer):
     logging.info(f"findtxt called with answer: {answer}")
     
@@ -45,7 +44,6 @@ def findtxt(answer):
         st.write("NOT TEXT")
     
     return []
-
 
 # Function to handle "Answer The Question" button click
 def answer_question():
@@ -193,6 +191,8 @@ with col2:
             <h2 style='margin: 0;'>Danish Jura - Legal Expert AI</h2>
         </div>
         """, unsafe_allow_html=True)
+    if st.button("How to Use this App"):
+        Mekanism.loadhelp("Help.pdf")
 
 # Add the input box for API key under the title
 st.text_input("Enter AI Key", value=st.session_state['api_key'], key='api_key')
