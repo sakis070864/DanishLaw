@@ -1,81 +1,75 @@
 import streamlit as st
+from PIL import Image
 import openai
-import Mekanism
-import re
+import Mekanism  # Ensure this module is correctly imported
+import re  # Import re module for the findtxt function
 import logging
 import os
-import requests  # Add requests to check for internet connection
-from PIL import Image
-import sys
-
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-
-# Function to check for an internet connection
-def check_internet_connection():
-    try:
-        requests.get("http://www.google.com", timeout=5)
-        return True
-    except (requests.ConnectionError, requests.Timeout):
-        return False
 
 # Function to find and extract summary lines from the answer
 def findtxt(answer):
     logging.info(f"findtxt called with answer: {answer}")
-
+    
+    # Check if answer has text
     if answer:
+        # Search for the keywords "**SUMMARY**," "**Summary**," "**summary**," or "**Key Points:**"
         summary_match = re.search(r'\*\*SUMMARY\*\*|\*\*Summary\*\*|\*\*summary\*\*', answer)
         if summary_match:
+            # Find the position of the keyword
             start_pos = summary_match.end()
+            # Extract the text after the keyword
             after_summary_text = answer[start_pos:].strip()
-
+            
+            # Look for "Key Points" after the summary keyword
             key_points_match = re.search(r'\*\*Key Points:?\*\*', after_summary_text)
             if key_points_match:
                 start_pos = key_points_match.end()
                 after_summary_text = after_summary_text[start_pos:].strip()
 
+            # Extract the lines under the keyword
             summary_lines = []
             for line in after_summary_text.split('\n'):
                 line = line.strip()
                 if line:
                     summary_lines.append(line)
-                elif line == "":
+                elif line == "":  # Stop if an empty line is encountered
                     break
-
+            
             return summary_lines
         else:
             st.write("I DON'T FIND SUMMARY")
     else:
         st.write("NOT TEXT")
-
+    
     return []
 
 # Function to handle "Answer The Question" button click
 def answer_question():
-    if not check_internet_connection():
-        st.error("No Internet Connection!!!  Please establish a connection and Refresh the page.")
-        sys.exit()
-        #return
-
     if 'api_key' not in st.session_state or not st.session_state['api_key']:
         st.session_state['wrong_key'] = True
         return
 
     openai.api_key = st.session_state['api_key']
     try:
+        # Test the API key with a simple request
         openai.Model.list()
     except openai.error.AuthenticationError:
         st.session_state['wrong_key'] = True
         return
 
     if st.session_state['question']:
+        # First Job: Get detailed response from ChatGPT
         askjura_response = Mekanism.askjura(st.session_state['question'])
         detailed_answer = get_response(askjura_response)
         st.session_state['answer'] = detailed_answer
 
+        # Extract summary lines automatically after getting the answer
         summary_lines = findtxt(detailed_answer)
         st.session_state['summary_lines'] = summary_lines
 
+        # Second Job: Get summary response from ChatGPT
         links_response = Mekanism.links(st.session_state['question'])
         summary_answer = get_response(links_response)
         st.session_state['summary_points'] = summary_answer.split('\n')
@@ -96,33 +90,6 @@ def clear_input():
 def set_api_key():
     openai.api_key = st.session_state['api_key']
 
-# Function to get response from OpenAI
-def get_response(prompt):
-    response = openai.ChatCompletion.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law."},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=2000,
-        temperature=0.1,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0
-    )
-    return response.choices[0].message['content'].strip()
-
-# Function to handle summary link click
-def handle_summary_click(point):
-    st.session_state['selected_summary'] = point.split('. ', 1)[-1]  # Extract text after the first period and space
-    st.session_state['question'] = st.session_state['selected_summary']
-    st.experimental_rerun()
-
-# Check internet connection on app start
-if not check_internet_connection():
-    st.error("No Internet Connection!!!  Please establish a connection and Refresh the page.")          #---------------------------------------------
-    st.stop()
-
 # Set default OpenAI API key if not already set
 if 'api_key' not in st.session_state:
     st.session_state['api_key'] = ''
@@ -131,7 +98,7 @@ if 'wrong_key' not in st.session_state:
 
 # Define the lists of laws
 real_estate_laws = [
-    "", "Property Ownership", "Property Transfer", "Land Registration (Tinglysning)", "Mortgage Law",
+    "","Property Ownership", "Property Transfer", "Land Registration (Tinglysning)", "Mortgage Law",
     "Leasing and Tenancy Law", "Property Taxation", "Property Development", "Zoning Regulations",
     "Building Regulations", "Agricultural Property Law", "Easements and Rights of Way", "Condominium Law",
     "Cooperative Housing Law", "Expropriation Law", "Environmental Regulations", "Historical Preservation",
@@ -147,7 +114,7 @@ real_estate_laws = [
 ]
 
 finance_laws = [
-    "", "Banking Law", "Securities Law", "Investment Law", "Financial Regulation", "Insurance Law", "Pension Law",
+    "","Banking Law", "Securities Law", "Investment Law", "Financial Regulation", "Insurance Law", "Pension Law",
     "Corporate Finance Law", "Capital Markets Law", "Anti-Money Laundering Law", "Financial Crime Law", "Payment Services Law",
     "Credit Law", "Consumer Finance Law", "Financial Supervision", "Financial Instruments Law", "Financial Contracts Law",
     "Public Finance Law", "Tax Law", "Mergers and Acquisitions", "Financial Services Law", "Derivatives Law", "Accounting Law",
@@ -168,7 +135,7 @@ finance_laws = [
 ]
 
 business_laws = [
-    "", "Company Law", "Commercial Contracts", "Corporate Governance", "Mergers and Acquisitions", "Intellectual Property Law",
+    "","Company Law", "Commercial Contracts", "Corporate Governance", "Mergers and Acquisitions", "Intellectual Property Law",
     "Employment Law", "Competition Law", "Consumer Protection Law", "Bankruptcy and Insolvency Law", "Tax Law",
     "International Trade Law", "Environmental Law", "Energy Law", "Real Estate Law", "Financial Regulation", "Securities Law",
     "Anti-Money Laundering Law", "Data Protection Law", "E-commerce Law", "Public Procurement Law", "Franchise Law", "Agency Law",
@@ -209,16 +176,6 @@ if 'api_key' not in st.session_state:
     st.session_state['api_key'] = ''
 if 'wrong_key' not in st.session_state:
     st.session_state['wrong_key'] = False
-
-# Function to update the question input box from list box selection
-def update_question_from_real_estate():
-    st.session_state['question'] = st.session_state['real_estate_law_selected']
-
-def update_question_from_finance():
-    st.session_state['question'] = st.session_state['finance_law_selected']
-
-def update_question_from_business():
-    st.session_state['question'] = st.session_state['business_law_selected']
 
 # Load the logo image
 logo_path = os.path.join(os.path.dirname(__file__), 'images', 'Screenshot_2024-06-04_232939-removebg-preview.png')
@@ -267,6 +224,38 @@ if st.session_state['wrong_key']:
 # Add the logo to the sidebar above the title
 with st.sidebar:
     st.image(logo, width=100)
+
+# Function to get response from OpenAI
+def get_response(prompt):
+    response = openai.ChatCompletion.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law. rrr."},
+            {"role": "user", "content": prompt}
+        ],
+        max_tokens=2000,
+        temperature=0.1,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0
+    )
+    return response.choices[0].message['content'].strip()
+
+# Function to handle summary link click
+def handle_summary_click(point):
+    st.session_state['selected_summary'] = point.split('. ', 1)[-1]  # Extract text after the first period and space
+    st.session_state['question'] = st.session_state['selected_summary']
+    st.experimental_rerun()
+
+# Function to update the question input box from list box selection
+def update_question_from_real_estate():
+    st.session_state['question'] = st.session_state['real_estate_law_selected']
+
+def update_question_from_finance():
+    st.session_state['question'] = st.session_state['finance_law_selected']
+
+def update_question_from_business():
+    st.session_state['question'] = st.session_state['business_law_selected']
 
 # Input box for entering the question
 def update_question():
@@ -317,7 +306,8 @@ with col4:
 if st.session_state['answer']:
     st.write("You asked: ", st.session_state['question'])
     st.write("Answer: ", st.session_state['answer'])
-
+    
+    # Extract summary lines and display them as clickable buttons
     if st.session_state['summary_lines']:
         st.write("Summary Points:")
         for i, line in enumerate(st.session_state['summary_lines']):
