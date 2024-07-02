@@ -1,87 +1,76 @@
 import streamlit as st
+from PIL import Image
 import openai
-import Mekanism
-import re
+import Mekanism  # Ensure this module is correctly imported
+import re  # Import re module for the findtxt function
 import logging
 import os
-import requests  # Add requests to check for internet connection
-from PIL import Image
-import sys
-
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-
-# Function to check for an internet connection
-def check_internet_connection():
-    try:
-        requests.get("http://www.google.com", timeout=5)
-        return True
-    except (requests.ConnectionError, requests.Timeout):
-        return False
 
 # Function to find and extract summary lines from the answer
 def findtxt(answer):
     logging.info(f"findtxt called with answer: {answer}")
-
+    
+    # Check if answer has text
     if answer:
-        #summary_match = re.search(r'\*\*OPSUMMERING\*\*|\*\*Opsummering\*\*|\*\*opsummering\*\*', answer)
-        #summary_match = re.search(r'\*OPSUMMERING\*|\*Opsummering\*|\*opsummering\*', answer)
-        summary_match = re.search(r'\*OPSUMMERING\*|\*Opsummering\*|\*opsummering\*|\*FED Nøglepunkter\*', answer)
-        summary_match = re.search(r'\*OPSUMMERING\*|\*Opsummering\*|\*opsummering\*|\*FED Nøglepunkter\*|\*FED Opsummering\*', answer)
-        #summary_match = re.search(r'\*OPSUMMERING\*|\*Opsummering\*|\*opsummering\*|\*FED Nøglepunkter\*|\*FED Opsummering\*|Opsummering', answer)
-
-
+        # Search for the keywords "**SUMMARY**," "**Summary**," "**summary**," or "**Key Points:**"
+        #summary_match = re.search(r'\*\*SAMMENFATNINGSPUNKTER\*\*|\*\*Summary\*\*|\*\*summary\*\*', answer)
+        summary_match = re.search(r'\*\*SAMMENFATNINGSPUNKTER\*\*', answer)
         if summary_match:
+            # Find the position of the keyword
             start_pos = summary_match.end()
+            # Extract the text after the keyword
             after_summary_text = answer[start_pos:].strip()
-
-            key_points_match = re.search(r'\*\*Key Points:?\*\*', after_summary_text)
+            
+            # Look for "Key Points" after the summary keyword
+            key_points_match = re.search(r'\*\*SAMMENFATNINGSPUNKTER?\*\*', after_summary_text)
             if key_points_match:
                 start_pos = key_points_match.end()
                 after_summary_text = after_summary_text[start_pos:].strip()
 
+            # Extract the lines under the keyword
             summary_lines = []
             for line in after_summary_text.split('\n'):
                 line = line.strip()
                 if line:
                     summary_lines.append(line)
-                elif line == "":
+                elif line == "":  # Stop if an empty line is encountered
                     break
-
+            
             return summary_lines
         else:
-            st.write("JEG FINDER IKKE RESUMÉ")
+            st.write("Jeg kan ikke finde et resumé")
     else:
-        st.write("INTET TEKST")
-
+        st.write("Ingen tekst")
+    
     return []
 
-# Function to handle "Svar på spørgsmålet" button click
+# Function to handle "Answer The Question" button click
 def answer_question():
-    if not check_internet_connection():
-        st.error("Ingen internetforbindelse!!! Opret venligst en forbindelse og opdater siden.")
-        sys.exit()
-        #return
-
     if 'api_key' not in st.session_state or not st.session_state['api_key']:
         st.session_state['wrong_key'] = True
         return
 
     openai.api_key = st.session_state['api_key']
     try:
+        # Test the API key with a simple request
         openai.Model.list()
     except openai.error.AuthenticationError:
         st.session_state['wrong_key'] = True
         return
 
     if st.session_state['question']:
+        # First Job: Get detailed response from ChatGPT
         askjura_response = Mekanism.askjuradk(st.session_state['question'])
         detailed_answer = get_response(askjura_response)
         st.session_state['answer'] = detailed_answer
 
+        # Extract summary lines automatically after getting the answer
         summary_lines = findtxt(detailed_answer)
         st.session_state['summary_lines'] = summary_lines
 
+        # Second Job: Get summary response from ChatGPT
         links_response = Mekanism.linksdk(st.session_state['question'])
         summary_answer = get_response(links_response)
         st.session_state['summary_points'] = summary_answer.split('\n')
@@ -102,33 +91,6 @@ def clear_input():
 def set_api_key():
     openai.api_key = st.session_state['api_key']
 
-# Function to get response from OpenAI
-def get_response(prompt):
-    response = openai.ChatCompletion.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "Jeg er en dansk advokat med over 35 års erfaring, der specialiserer sig i dansk finanslovgivning, erhvervsret, ejendomsret og bankret."},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=2000,
-        temperature=0.1,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0
-    )
-    return response.choices[0].message['content'].strip()
-
-# Function to handle summary link click
-def handle_summary_click(point):
-    st.session_state['selected_summary'] = point.split('. ', 1)[-1]  # Extract text after the first period and space
-    st.session_state['question'] = st.session_state['selected_summary']
-    st.experimental_rerun()
-
-# Check internet connection on app start
-if not check_internet_connection():
-    st.error("Ingen internetforbindelse!!! Opret venligst en forbindelse og opdater siden.")
-    st.stop()
-
 # Set default OpenAI API key if not already set
 if 'api_key' not in st.session_state:
     st.session_state['api_key'] = ''
@@ -137,61 +99,61 @@ if 'wrong_key' not in st.session_state:
 
 # Define the lists of laws
 real_estate_laws = [
-    "", "Ejerskab af ejendom", "Overdragelse af ejendom", "Jordregistrering (Tinglysning)", "Pantsætningslovgivning",
-    "Lejelovgivning", "Ejendomsbeskatning", "Ejendomsudvikling", "Zonereguleringer",
-    "Bygningsreguleringer", "Landbrugsejendomslovgivning", "Servitutter og brugsret", "Andelsboliglovgivning",
-    "Andelshuslovgivning", "Ekspropriationslovgivning", "Miljøreguleringer", "Historisk bevarelse",
-    "Tvangsauktion og tilbagekøb", "Arv af ejendom", "Kommerciel ejendomslovgivning", "Tvistbilæggelse i ejendomssager",
-    "Ejendomsvurdering", "Planlægning af jordbrug", "Ejendomsfinansiering", "Husejerforeningslovgivning",
-    "Ejendomsinvesteringsforeninger (REITs)", "Offentlig ejendomslovgivning", "Privat ejendomslovgivning", "Ejendomsforvaltningslovgivning",
-    "Byfornyelseslovgivning", "Lejekontrol og regulering", "Ejendomssalg og erhvervelse", "Ejendomsmæglingslovgivning",
-    "Ejendomsforsikringslovgivning", "Ejendomstvister og retssager", "Byggekontrakter", "Finansiering af ejendomsudvikling",
-    "Ejendomsmæglingslovgivning", "Ejendomsvedligeholdelseslovgivning", "Forebyggelse af ejendomssvindel", "Udlejer-lejer-tvister",
-    "Arkitektoniske reguleringer", "Byggeret", "Boligkooperativer", "Fælles ejerskab", "Private veje og stier",
-    "Offentlig infrastrukturret", "Vedvarende energianlæg", "Turisme- og gæstfrihedsejendomslovgivning",
-    "Vandfrontsejendomslovgivning", "Vildt- og naturbeskyttelsesområder"
+    "", "Ejendomsejerskab", "Ejendomsoverdragelse", "Tinglysning", "Pantsætningsret",
+    "Leje- og boliglovgivning", "Ejendomsbeskatning", "Ejendomsudvikling", "Zoneregler",
+    "Bygningsreglement", "Landbrugsejendomslov", "Servitutter og færdselsret", "Ejerlejlighedslov",
+    "Andelsboliglov", "Ekspropriationslov", "Miljøregler", "Historisk bevaring",
+    "Tvangsauktion og rekvisition", "Arv af ejendom", "Erhvervsejendomslov", "Tvistbilæggelse i ejendom",
+    "Ejendomsvurdering", "Lokalplanlægning", "Ejendomsfinansiering", "Ejerforeningslov",
+    "Ejendomsinvesteringsforeninger (REITs)", "Offentlig ejendomslov", "Privat ejendomslov", "Ejendomsadministrationslov",
+    "Byfornyelseslov", "Huslejeregulering", "Ejendomssalg og erhvervelse", "Ejendomsmæglerlov",
+    "Ejendomsforsikringslov", "Ejendomstvister og retssager", "Byggekontrakter", "Ejendomsudviklingsfinansiering",
+    "Ejendomsmæglerlov", "Ejendomsvedligeholdelseslov", "Forebyggelse af ejendomssvindel", "Udlejer-lejer tvister",
+    "Arkitekturregler", "Byggeret", "Boligkooperativer", "Fælleseje", "Private veje og stier",
+    "Offentlig infrastrukturlov", "Installationer til vedvarende energi", "Turist- og hotel ejendomslov",
+    "Ejendomslov ved vandfront", "Vildt- og bevaringsområder"
 ]
 
 finance_laws = [
-    "", "Banklovgivning", "Værdipapirlovgivning", "Investeringslovgivning", "Finansiel regulering", "Forsikringslovgivning", "Pensionslovgivning",
-    "Virksomhedsfinansieringslovgivning", "Kapitalmarkedslovgivning", "Lov om bekæmpelse af hvidvaskning af penge", "Finansiel kriminalitetslovgivning", "Betalingstjenestelovgivning",
-    "Kreditlovgivning", "Forbrugerfinansieringslovgivning", "Finanstilsyn", "Lov om finansielle instrumenter", "Finansielle kontraktslovgivning",
-    "Offentlig finanslovgivning", "Skattelovgivning", "Fusioner og opkøb", "Finansielle tjenestelovgivning", "Derivaterlovgivning", "Regnskabslovgivning",
-    "Revisionslovgivning", "Konkurslovgivning", "Insolvenslovgivning", "Finansiel rapportering", "Risikostyringslovgivning", "Overholdelseslovgivning",
-    "Hedgefondlovgivning", "Private equity lovgivning", "Formueforvaltningslovgivning", "Fondslovgivning", "Crowdfunding lovgivning", "Fintech lovgivning",
-    "Mikrofinanslovgivning", "Ejendomsfinansieringslovgivning", "International finanslovgivning", "Elektroniske pengelovgivning", "Finansiel teknologilovgivning",
-    "Finansiel stabilitetslovgivning", "Lov om grænseoverskridende finansiering", "Finansmarkedsregulering", "Lov om markedsmisbrug", "Lov om finansiel gennemsigtighed",
-    "Formueforvaltningslovgivning", "Struktureret finansieringslovgivning", "Securitization lovgivning", "Venturekapitallovgivning", "Statsgældslovgivning",
-    "International banklovgivning", "Valutalovgivning", "Lovgivning om virksomhedsledelse", "Lov om finansiel rådgivning",
-    "Lov om kreditvurderingsbureauer", "Lov om forbrugerbeskyttelse", "Lovgivning om økonomiske sanktioner", "Handelsfinansieringslovgivning",
-    "Projektfinansieringslovgivning", "Grøn finanslovgivning", "Bæredygtig finanslovgivning", "Basel III-overholdelse", "Solvens II-regulering",
-    "Finansiel ombudsmand", "Digital banklovgivning", "Åben banklovgivning", "Kryptovalutalovgivning", "Blockchain finanslovgivning",
-    "Robo-rådgivningslovgivning", "Finansiel inklusionslovgivning", "Lov om kreditforeninger", "Centralbankregulering", "Pengepolitisk lovgivning",
-    "Lov om direkte udenlandske investeringer", "Økonomisk udviklingslovgivning", "Leasingfinansieringslovgivning", "Faktureringslovgivning", "Lov om handelskreditforsikring",
-    "Finansiel ingeniørkunst", "Offentlig-privat partnerskabslovgivning", "Lov om eksportkreditter", "Pengefondslovgivning",
-    "Ejendomsinvesteringslovgivning", "Private banklovgivning", "Lov om finansiel forståelse", "Skyggebanklovgivning", "Finansiel planlægning",
-    "Lov om forrentning", "Pensionsopsparingslovgivning", "Aktuariel lovgivning", "Genforsikringslovgivning"
+    "", "Banklovgivning", "Værdipapirret", "Investeringslovgivning", "Finansiel regulering", "Forsikringslovgivning", "Pensionslovgivning",
+    "Erhvervsfinansieringslov", "Kapitalmarkedslovgivning", "Hvidvaskningslovgivning", "Finansiel kriminalitetslovgivning", "Betalingstjenester",
+    "Kreditlovgivning", "Forbrugerfinansiering", "Finanstilsyn", "Lov om finansielle instrumenter", "Lov om finansielle kontrakter",
+    "Offentlig finanslov", "Skattelovgivning", "Fusions- og opkøbslovgivning", "Finansielle tjenester", "Afledte finansielle instrumenter", "Regnskabslov",
+    "Revisionslovgivning", "Konkurslovgivning", "Insolvenslovgivning", "Finansiel rapportering", "Risikostyringslovgivning", "Compliance-lovgivning",
+    "Hedgefondslovgivning", "Private equity lovgivning", "Kapitalforvaltningslov", "Fondsforvaltningslovgivning", "Crowdfunding lovgivning", "Fintech-lovgivning",
+    "Mikrofinansieringslovgivning", "Ejendomsfinansieringslovgivning", "International finanslovgivning", "Elektroniske penge lovgivning", "Finansiel teknologilovgivning",
+    "Finansiel stabilitetslovgivning", "Tværnational finanslovgivning", "Finansmarkedslovgivning", "Markedsmisbrugslovgivning", "Finansiel gennemsigtighed",
+    "Formueforvaltning", "Struktureret finanslovgivning", "Securitization lovgivning", "Risikokapital lovgivning", "Statens gældslovgivning",
+    "International banklovgivning", "Valutalovgivning", "Corporate governance-lovgivning", "Finansiel rådgivningslovgivning",
+    "Lov om kreditvurderingsbureauer", "Forbrugerbeskyttelse i finansielle tjenester", "Økonomiske sanktioner", "Handelsfinansiering",
+    "Projektfinansieringslovgivning", "Grøn finanslovgivning", "Bæredygtig finanslovgivning", "Basel III overholdelse", "Solvens II regulering",
+    "Finansiel ombudsmand", "Digital banklovgivning", "Open banking lovgivning", "Kryptovaluta lovgivning", "Blockchain finanslovgivning",
+    "Robo-rådgivningslovgivning", "Finansiel inklusionslovgivning", "Lov om kreditforeninger", "Regulering af centralbanker", "Monetær politiklovgivning",
+    "Udenlandske direkte investeringer", "Økonomisk udviklingslovgivning", "Leasingfinansieringslovgivning", "Factoring-lovgivning", "Handelskreditforsikring",
+    "Finansiel ingeniørkunst", "Offentlig-private partnerskaber", "Eksportkreditlovgivning", "Pengemarkedsfondslovgivning",
+    "Ejendomsinvesteringslovgivning", "Private banking lovgivning", "Finansiel literacy lovgivning", "Shadow banking lovgivning", "Finansiel planlægning",
+    "Forbedring af afkast", "Pensionsopsparingslovgivning", "Aktuariel lovgivning", "Genforsikringslovgivning"
 ]
 
 business_laws = [
-    "", "Selskabslovgivning", "Kommercielle kontrakter", "Virksomhedsledelse", "Fusioner og opkøb", "Intellektuel ejendomsret",
-    "Ansættelseslovgivning", "Konkurrencelovgivning", "Forbrugerbeskyttelseslovgivning", "Konkurs- og insolvenslovgivning", "Skattelovgivning",
-    "International handelslovgivning", "Miljølovgivning", "Energilovgivning", "Ejendomslovgivning", "Finansiel regulering", "Værdipapirlovgivning",
-    "Lov om bekæmpelse af hvidvaskning af penge", "Databeskyttelseslovgivning", "E-handelslovgivning", "Offentlig indkøbslovgivning", "Franchiselovgivning", "Agenturlovgivning",
-    "Distributionslovgivning", "Partnerskabslovgivning", "Joint ventures", "Kommerciel tvistbilæggelse", "Voldgiftslovgivning", "Mæglinglovgivning",
-    "Virksomhedsfinansieringslovgivning", "Private equity lovgivning", "Venturekapitallovgivning", "Investeringsfondslovgivning", "Forsikringslovgivning", "Pensionslovgivning",
-    "Shipping lovgivning", "Luftfartslovgivning", "Transportlovgivning", "Medie- og underholdningslovgivning", "Telekommunikationslovgivning", "Sundhedslovgivning",
-    "Farmaceutisk lovgivning", "Teknologilovgivning", "Byggeret", "Landbrugslovgivning", "Minedriftlovgivning", "Sportslovgivning", "Spillelovgivning",
-    "Gæstfrihedslovgivning", "Turismelovgivning", "Offentlig ret", "Reguleringsmæssig overholdelse", "Virksomhedsomstrukturering", "Virksomheders sociale ansvar",
-    "Antikorruptionslovgivning", "Eksportkontrol", "Toldlovgivning", "Handelsmæssig overholdelse", "Selskabskriminalitet", "Økonomisk kriminalitet",
-    "Lovgivning om medarbejderfordele", "Arbejdsrelationer", "Sundheds- og sikkerhedslovgivning", "Reklamelovgivning", "Markedsføringslovgivning", "Forbrugerrettigheder",
-    "Produktansvarslovgivning", "Forsyningskædelovgivning", "Outsourcing lovgivning", "IT-lovgivning", "Cybersecurity lovgivning", "Telekommunikationsregulering", "Internetlovgivning",
-    "Cloud computing lovgivning", "Blockchain lovgivning", "Kryptovalutalovgivning", "Crowdfunding lovgivning", "Økonomiske sanktioner", "Udenlandske investeringer",
-    "Sovereign Wealth Funds lovgivning", "Kommercielle leasinglovgivning", "Ejendomsleasing lovgivning", "Ejendomsinvesteringslovgivning", "Vedvarende energilovgivning",
-    "Klimalovgivning", "Affaldshåndteringslovgivning", "Vandlovgivning", "Folkesundhedslovgivning", "Bioteknologilovgivning", "Life Sciences lovgivning",
-    "Medicinsk udstyr lovgivning", "Uddannelseslovgivning", "Nonprofit lovgivning", "Velgørenhedsorganisationer", "Sociale virksomheder",
-    "Familievirksomhedslovgivning", "Entreprenørskabslovgivning", "Opstartslovgivning", "Innovationslovgivning", "Lovgivning om forskning og udvikling", "Tilskuds- og støtteordninger",
-    "Offentlig-privat partnerskabslovgivning", "Infrastrukturlovgivning"
+    "", "Selskabslovgivning", "Kommercielle kontrakter", "Corporate governance", "Fusions- og opkøbslovgivning", "Intellektuel ejendomslovgivning",
+    "Ansættelsesret", "Konkurrencelovgivning", "Forbrugerbeskyttelse", "Konkurs- og insolvenslovgivning", "Skattelovgivning",
+    "International handelslovgivning", "Miljølovgivning", "Energilovgivning", "Ejendomsret", "Finansiel regulering", "Værdipapirret",
+    "Hvidvaskningslovgivning", "Databeskyttelseslovgivning", "E-handelslovgivning", "Offentlige indkøb", "Franchise-lovgivning", "Agenturlovgivning",
+    "Distributionslovgivning", "Partnerskabslovgivning", "Joint ventures", "Kommerciel tvistbilæggelse", "Voldgiftslovgivning", "Mæglingslovgivning",
+    "Corporate finance lovgivning", "Private equity lovgivning", "Risikokapital lovgivning", "Investeringsfonds lovgivning", "Forsikringslovgivning", "Pensionslovgivning",
+    "Søret", "Luftfartslovgivning", "Transportlovgivning", "Medie- og underholdningslovgivning", "Telekommunikationslovgivning", "Sundhedslovgivning",
+    "Lægemiddellovgivning", "Teknologilovgivning", "Byggeret", "Landbrugslovgivning", "Minedriftslovgivning", "Sportslovgivning", "Spillelovgivning",
+    "Hospitality lovgivning", "Turismelovgivning", "Offentlig ret", "Reguleringsoverholdelse", "Virksomhedsrestrukturering", "Virksomheders sociale ansvar",
+    "Antikorruptionslovgivning", "Eksportkontroller", "Toldlovgivning", "Handelsoverholdelse", "Virksomhedskriminalitet", "Hvidkravekriminalitet",
+    "Ansættelsesfordele", "Arbejdsforhold", "Sundhed og sikkerhed", "Reklamelovgivning", "Markedsføringslovgivning", "Forbrugerrettigheder",
+    "Produktansvarslovgivning", "Forsyningskæde lovgivning", "Outsourcing lovgivning", "IT-lovgivning", "Cybersikkerhedslovgivning", "Telekommunikationsregulering",
+    "Internetlovgivning", "Cloud computing lovgivning", "Blockchain-lovgivning", "Kryptovaluta lovgivning", "Crowdfunding lovgivning", "Økonomiske sanktioner",
+    "Udenlandske investeringer", "Statens formuefonde", "Erhvervsleasing", "Ejendomsleasing", "Ejendomsinvesteringslovgivning", "Vedvarende energilovgivning",
+    "Klimalovgivning", "Affaldshåndtering", "Vandlovgivning", "Offentlig sundhed", "Bioteknologilovgivning", "Life sciences lovgivning",
+    "Medicinsk udstyr", "Uddannelseslovgivning", "Nonprofit lovgivning", "Velgørende organisationer", "Sociale virksomheder", "Familievirksomheder",
+    "Entreprenørskab", "Opstartslovgivning", "Innovationslovgivning", "Forskning og udvikling", "Tilskud og subsidier",
+    "Offentlig-private partnerskaber", "Infrastrukturlovgivning"
 ]
 
 # Initialize session state keys
@@ -216,16 +178,6 @@ if 'api_key' not in st.session_state:
 if 'wrong_key' not in st.session_state:
     st.session_state['wrong_key'] = False
 
-# Function to update the question input box from list box selection
-def update_question_from_real_estate():
-    st.session_state['question'] = st.session_state['real_estate_law_selected']
-
-def update_question_from_finance():
-    st.session_state['question'] = st.session_state['finance_law_selected']
-
-def update_question_from_business():
-    st.session_state['question'] = st.session_state['business_law_selected']
-
 # Load the logo image
 logo_path = os.path.join(os.path.dirname(__file__), 'images', 'Screenshot_2024-06-04_232939-removebg-preview.png')
 logo = Image.open(logo_path)
@@ -237,14 +189,14 @@ with col1:
 with col2:
     st.markdown("""
         <div style='display: flex; align-items: center;'>
-            <h2 style='margin: 0;'>Dansk Jura - Juridisk Ekspert AI</h2>
+            <h2 style='margin: 0;'>Danish Jura - Legal Expert AI</h2>
         </div>
         """, unsafe_allow_html=True)
-    if st.button("Hvordan bruger man denne app"):
+    if st.button("Sådan bruger du denne app"):
         Mekanism.loadhelp("Help.pdf")
 
 # Add the input box for API key under the title
-st.text_input("Indtast AI-nøgle", value=st.session_state['api_key'], key='api_key')
+st.text_input("Indtast AI nøgle", value=st.session_state['api_key'], key='api_key')
 if st.button("Send nøgle"):
     set_api_key()
 
@@ -274,6 +226,38 @@ if st.session_state['wrong_key']:
 with st.sidebar:
     st.image(logo, width=100)
 
+# Function to get response from OpenAI
+def get_response(prompt):
+    response = openai.ChatCompletion.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law. rrr."},
+            {"role": "user", "content": prompt}
+        ],
+        max_tokens=2000,
+        temperature=0.1,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0
+    )
+    return response.choices[0].message['content'].strip()
+
+# Function to handle summary link click
+def handle_summary_click(point):
+    st.session_state['selected_summary'] = point.split('. ', 1)[-1]  # Extract text after the first period and space
+    st.session_state['question'] = st.session_state['selected_summary']
+    st.experimental_rerun()
+
+# Function to update the question input box from list box selection
+def update_question_from_real_estate():
+    st.session_state['question'] = st.session_state['real_estate_law_selected']
+
+def update_question_from_finance():
+    st.session_state['question'] = st.session_state['finance_law_selected']
+
+def update_question_from_business():
+    st.session_state['question'] = st.session_state['business_law_selected']
+
 # Input box for entering the question
 def update_question():
     st.session_state['question'] = st.session_state['question_input']
@@ -281,9 +265,9 @@ def update_question():
 question = st.text_input("Indtast dit spørgsmål", value=st.session_state['question'], key="question_input", on_change=update_question)
 
 # Set the sidebar title based on the input box value
-sidebar_title = st.session_state['question'] if 'question' in st.session_state and st.session_state['question'] else "Juridisk Ekspert"
+sidebar_title = st.session_state['question'] if 'question' in st.session_state and st.session_state['question'] else "Juridisk ekspert"
 st.sidebar.title(sidebar_title)
-st.sidebar.write("Vigtige links vises her")
+st.sidebar.write("Vigtige links vil vises her")
 
 # Display summary points in the sidebar as links
 if st.session_state['summary_points']:
@@ -315,15 +299,16 @@ business_law = st.selectbox(
 # Layout for the buttons
 col3, col4 = st.columns([1, 1])
 with col3:
-    st.button("Svar på spørgsmålet", key="answer_button", help="Klik for at få svaret", on_click=answer_question)
+    st.button("Besvar spørgsmålet", key="answer_button", help="Klik for at få svaret", on_click=answer_question)
 with col4:
-    st.button("Ryd prompt", key="clear_button", help="Klik for at rydde prompten", on_click=clear_input)
+    st.button("Ryd forespørgsel", key="clear_button", help="Klik for at rydde forespørgslen", on_click=clear_input)
 
 # Display the answer if available and add summary points as clickable links
 if st.session_state['answer']:
     st.write("Du spurgte: ", st.session_state['question'])
     st.write("Svar: ", st.session_state['answer'])
-
+    
+    # Extract summary lines and display them as clickable buttons
     if st.session_state['summary_lines']:
         st.write("Resumé punkter:")
         for i, line in enumerate(st.session_state['summary_lines']):
