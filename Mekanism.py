@@ -35,12 +35,6 @@ def askjuradk(intext):
 def linksdk(inprompt):
     return f"Lever en omfattende liste over kategorier eller underområder inden for {inprompt} hovedlov i Danmark, som skitseret i Karnov lovdatabase og relevante onlinekilder. Organiser kategorierne på en struktureret måde, og forklar, hvordan de er arrangeret inden for det danske retssystem. Formatér svaret med hver kategori eller underområde på en separat linje, med maksimalt 40 tegn pr. linje, for nem reference og klarhed. Vis kun loven uden andre kommentarer"
 
-def askbox():
-    user_input = st.text_input("Ask a Question", "")
-    if user_input:
-        return askjura(user_input)
-    return ""
-
 #-----------------------------------------------------------------------
 def loadhelp(tpath):
     # Read the file content

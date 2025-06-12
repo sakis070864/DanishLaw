@@ -227,25 +227,32 @@ with st.sidebar:
 
 # Function to get response from OpenAI
 def get_response(prompt):
-    response = openai.ChatCompletion.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law. rrr."},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=2000,
-        temperature=0.1,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0
-    )
-    return response.choices[0].message['content'].strip()
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "I am a Danish lawyer with over 35 years of experience specializing in Danish finance law, business law, real estate law, and banking law. rrr."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=2000,
+            temperature=0.1,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0
+        )
+        return response.choices[0].message['content'].strip()
+    except openai.error.RateLimitError:
+        return "Error: API rate limit reached. Please try again later."
+    except openai.error.APIError as e:
+        return f"Error: API error occurred. {str(e)}"
+    except Exception as e:
+        return f"Error: Unexpected error occurred. {str(e)}"
 
 # Function to handle summary link click
 def handle_summary_click(point):
     st.session_state['selected_summary'] = point.split('. ', 1)[-1]  # Extract text after the first period and space
     st.session_state['question'] = st.session_state['selected_summary']
-    st.experimental_rerun()
+    st.rerun()
 
 # Function to update the question input box from list box selection
 def update_question_from_real_estate():
@@ -313,7 +320,7 @@ if st.session_state['answer']:
         for i, line in enumerate(st.session_state['summary_lines']):
             if st.button(line, key=f"summary_line_{i}"):
                 st.session_state['question'] = line
-                st.experimental_rerun()
+                st.rerun()
 
 # Custom styling for the button
 st.markdown("""
